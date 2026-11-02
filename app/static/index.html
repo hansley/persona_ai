@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PersonaAI • Sophia</title>
+<style>
+:root{font-family:system-ui,sans-serif;color:#20243a;background:#f6f5f2}
+body{margin:0}main{max-width:900px;margin:0 auto;padding:24px}
+header{display:flex;justify-content:space-between;align-items:center}
+h1{margin-bottom:0}button{cursor:pointer;border:0;background:#3b4c9c;color:white;padding:11px 16px;border-radius:9px}
+button.secondary{background:#eee;color:#222}nav{display:flex;gap:8px;margin:20px 0}
+.panel{background:#fff;border:1px solid #e5e5e5;border-radius:14px;padding:20px}
+#chatlog{height:340px;overflow:auto;display:flex;flex-direction:column;gap:10px}
+.bubble{padding:12px;border-radius:12px;max-width:80%;white-space:pre-wrap}
+.user{align-self:flex-end;background:#e4e9ff}.assistant{align-self:flex-start;background:#f2f2f2}
+form{display:flex;gap:8px;margin-top:16px}input,textarea{width:100%;padding:12px;border:1px solid #ccc;border-radius:9px;box-sizing:border-box}
+textarea{min-height:85px}label{display:block;margin:12px 0}#error{color:#a32727}li{margin-bottom:12px}
+</style></head><body><main>
+<header><div><h1>PersonaAI</h1><p>Your private AI companion • local prototype</p></div><span>✦ Sophia</span></header>
+<nav><button class="secondary" onclick="show('chat')">Chat</button><button class="secondary" onclick="show('persona')">Personality</button><button class="secondary" onclick="show('memory')">Memories</button></nav>
+<p id="error" role="alert"></p>
+<section id="chat" class="panel"><div id="chatlog" aria-live="polite"></div>
+<form id="send"><input id="prompt" maxlength="8000" required placeholder="Write to Sophia..." aria-label="Message"><button>Send</button></form>
+<button class="secondary" id="new" style="margin-top:10px">New conversation</button></section>
+<section id="persona" class="panel" hidden><h2>Character studio</h2><form id="personaform" style="display:block">
+<label>Name<input id="name" maxlength="60" required></label><label>Personality and boundaries<textarea id="traits" maxlength="500" required></textarea></label><button>Save personality</button></form></section>
+<section id="memory" class="panel" hidden><h2>Explicit saved memories</h2>
+<p>Only memories you enter here are used for recall in this MVP. No automatic extraction.</p>
+<form id="memoryform"><input id="memorytext" maxlength="1000" placeholder="Remember that..." required><button>Remember</button></form>
+<ul id="memorylist"></ul></section>
+</main><script>
+let conversationId=null;
+const $=id=>document.getElementById(id);
+const err=e=>{$('error').textContent=String(e.message||e)};
+async function api(url,options={}){let r=await fetch(url,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});
+if(!r.ok)throw new Error('Request failed ('+r.status+')');return r.status===204?null:r.json()}
+function show(which){for(const id of ['chat','persona','memory'])$(id).hidden=id!==which;$('error').textContent=''}
+function bubble(role,text){let node=document.createElement('div');node.className='bubble '+role;node.textContent=text;$('chatlog').append(node);$('chatlog').scrollTop=$('chatlog').scrollHeight}
+$('send').onsubmit=async e=>{e.preventDefault();let text=$('prompt').value.trim();if(!text)return;
+$('prompt').value='';bubble('user',text);let b=e.target.querySelector('button');b.disabled=true;
+try{let r=await api('/api/chat',{method:'POST',body:JSON.stringify({conversation_id:conversationId,text})});conversationId=r.conversation_id;bubble('assistant',r.reply)}
+catch(ex){err(ex)}finally{b.disabled=false}};
+$('new').onclick=()=>{conversationId=null;$('chatlog').replaceChildren();bubble('assistant','New conversation started.')};
+$('personaform').onsubmit=async e=>{e.preventDefault();try{await api('/api/persona',{method:'PUT',body:JSON.stringify({name:$('name').value,traits:$('traits').value})});alert('Character saved')}catch(ex){err(ex)}};
+async function memories(){let data=await api('/api/memories');$('memorylist').replaceChildren();data.forEach(m=>{let li=document.createElement('li'),span=document.createElement('span'),b=document.createElement('button');span.textContent=m.content+' ';b.textContent='Forget';b.className='secondary';b.onclick=async()=>{try{await api('/api/memories/'+encodeURIComponent(m.id),{method:'DELETE'});await memories()}catch(ex){err(ex)}};li.append(span,b);$('memorylist').append(li)})}
+$('memoryform').onsubmit=async e=>{e.preventDefault();try{await api('/api/memories',{method:'POST',body:JSON.stringify({content:$('memorytext').value})});$('memorytext').value='';await memories()}catch(ex){err(ex)}};
+(async()=>{try{let p=await api('/api/persona');$('name').value=p.name;$('traits').value=p.traits;await memories();bubble('assistant','Hello! I am Sophia. I remember memories you choose to save.')}catch(ex){err(ex)}})();
+</script></body></html>

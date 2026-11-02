@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: personaai
+    runtime: docker
+    plan: starter
+    autoDeployTrigger: off
+    envVars:
+      - key: PERSONAAI_ENV
+        value: production
+      - key: PERSONAAI_DB
+        value: /data/personaai.sqlite3
+      - key: PERSONAAI_USER
+        value: owner
+      - key: PERSONAAI_PASSWORD
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4.1-mini
+    disk:
+      name: personaai-data
+      mountPath: /data
+      sizeGB: 1

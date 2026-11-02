@@ -1,15 +1,23 @@
 # PersonaAI
 
-A personal AI companion with a configurable persona, persistent conversations and user-controlled memory.
+Personal AI companion MVP with configurable personality, persistent conversations and user-managed memories.
 
-## MVP
+## Quick start
 
-- FastAPI service with SQLite development storage
-- Configurable companion identity
-- Persistent conversation history and explicit memory management
-- OpenAI-compatible model integration (optional API key)
-- Local browser chat interface
+1. Install Docker Desktop with Docker Compose.
+2. Copy `.env.example` to `.env`.
+3. Optionally set `OPENAI_API_KEY` for real model responses (without it, demo mode stores chat messages).
+4. Run `docker compose up --build`.
+5. Open http://localhost:8000.
 
-**Status:** early MVP, not production-ready. Do not expose the app to the internet without authentication, HTTPS and security hardening.
+The app persists data in a Docker volume. Use the Personality tab to edit Sophia, the Memories tab to create explicit memories, and Chat to converse.
 
-See `docs/ARCHITECTURE.md` after the starter implementation is added.
+## Testing
+
+`pip install -r requirements.txt && pytest -q`
+
+## Security and scope
+
+**Development use only.** The MVP has no authentication or multi-user support and intentionally binds to localhost. Do not deploy it publicly. Memory must be manually supplied; automated extraction and long-term semantic search are future milestones.
+
+See [Architecture and roadmap](docs/ARCHITECTURE.md).
