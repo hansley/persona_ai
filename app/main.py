@@ -7,12 +7,41 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import Response
+import base64
+import hmac
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
 DB_PATH = os.getenv("PERSONAAI_DB", "/data/personaai.sqlite3")
 app = FastAPI(title="PersonaAI MVP", version="0.1.0")
+
+
+@app.middleware("http")
+async def require_password(request: Request, call_next):
+    """Simple HTTP Basic gate for an individual MVP; use real identity for multi-user."""
+    password = os.getenv("PERSONAAI_PASSWORD", "")
+    if not password:
+        # Fail closed unless explicitly running the local-only demo.
+        if os.getenv("PERSONAAI_ENV") != "local":
+            return Response("Password not configured", status_code=503)
+        return await call_next(request)
+    header = request.headers.get("authorization", "")
+    try:
+        scheme, encoded = header.split(" ", 1)
+        raw = base64.b64decode(encoded, validate=True).decode("utf-8")
+        username, provided = raw.split(":", 1)
+        valid = (scheme.lower() == "basic" and
+                 hmac.compare_digest(username, os.getenv("PERSONAAI_USER", "owner")) and
+                 hmac.compare_digest(provided, password))
+    except (ValueError, UnicodeError, base64.binascii.Error):
+        valid = False
+    if not valid:
+        return Response("Authentication required", status_code=401,
+                        headers={"WWW-Authenticate": 'Basic realm="PersonaAI"'})
+    return await call_next(request)
+
 
 
 def now() -> str:
