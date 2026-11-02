@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 def client(tmp_path, monkeypatch):
     monkeypatch.setenv("PERSONAAI_DB", str(tmp_path / "test.db"))
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setenv("PERSONAAI_ENV", "local")
     import app.main as module
     importlib.reload(module)
     module.init_db()
