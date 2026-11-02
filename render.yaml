@@ -4,7 +4,6 @@ services:
     runtime: docker
     plan: starter
     autoDeployTrigger: off
-    healthCheckPath: /
     envVars:
       - key: PERSONAAI_ENV
         value: production
